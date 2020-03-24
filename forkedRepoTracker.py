@@ -64,26 +64,36 @@ if __name__ == "__main__":
 			res = get(url)
 			soup = BeautifulSoup(res.text, 'html.parser')
 
-			branchInfo = soup.find_all("div", {"class": "branch-infobar"})
-			branchInfo[0].find('span').extract()
+			branchInfoBar = soup.find_all("div", {"class": "branch-infobar"})[0].text
+			branchInfo = re.findall(r'.*(This branch.*master.).*', branchInfoBar)[0]
 
-			if branchInfo[0].text.strip().find("ahead") != -1:
-				print "Author: " + userName + ", " + branchInfo[0].text.strip()
+			if branchInfo.find("ahead") != -1:
+				print "Author: " + userName + ", " + branchInfo
 
-				aheadCommits = re.findall(r'([0-9]+) commits? ahead', branchInfo[0].text.strip())[0]
+				aheadCommits = int(re.findall(r'([0-9]+) commits? ahead', branchInfo)[0])
 				url = "https://github.com/" + userName + "/" + repoName + "/commits/master"
 				res = get(url)
 				soup = BeautifulSoup(res.text, 'html.parser')
 
 				commitList = soup.find_all("li", {"class": "commit"})
-				for i in range(int(aheadCommits)):
+				if len(commitList) < aheadCommits:
+					commitsPerPage = len(commitList)
+					latestCommit = soup.find("clipboard-copy")["value"]
+					for i in range(aheadCommits/commitsPerPage):
+						url = "https://github.com/" + userName + "/" + repoName + "/commits/master?after=" + latestCommit + "+" + str(commitsPerPage*(i+1)-1)
+						print url
+						res = get(url)
+						soup = BeautifulSoup(res.text, 'html.parser')
+						commitList += soup.find_all("li", {"class": "commit"})
+
+				for i in range(aheadCommits):
 					commitMessage = commitList[i].find_all("a", {"class": "message"})[0].text.strip()
-					commitTime = commitList[i].find("relative-time")['datetime']
+					commitTime = commitList[i].find("relative-time")["datetime"]
 
 					print "\tCommit message: " + commitMessage + ", time: " + commitTime
 			else:
 				if verbose == True:
-					print "Author: " + userName + ", " + branchInfo[0].text.strip()
+					print "Author: " + userName + ", " + branchInfo
 
 	else:
 		print "Can not find any forked repo"
