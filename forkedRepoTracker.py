@@ -81,6 +81,9 @@ if __name__ == "__main__":
 					commitTime = commitList[i].find("relative-time")['datetime']
 
 					print "\tCommit message: " + commitMessage + ", time: " + commitTime
+			else:
+				if verbose == True:
+					print "Author: " + userName + ", " + branchInfo[0].text.strip()
 
 	else:
 		print "Can not find any forked repo"
