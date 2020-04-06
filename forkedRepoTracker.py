@@ -24,7 +24,7 @@ def get(url, username = "", token = ""):
 	return res
 
 if __name__ == "__main__":
-	if len(sys.argv) < 4 or "-u" not in sys.argv:
+	if len(sys.argv) < 3 or "-u" not in sys.argv:
 		usage()
 		sys.exit(2)
 
