@@ -6,10 +6,12 @@ import json
 import time
 import sys
 import re
+import os
 
 def usage():
 	print "Usage:"
 	print "-h / --help: print this help message"
+	print "-s / --show-patch-disabled: do not show patch of compared commits"
 	print "-u / --url: specify the github url"
 	print "-v / --verbose: print more message"
 	print "\nExample: python forkedRepoTracker.py -u https://github.com/AUTHOR/REPO"
@@ -29,18 +31,21 @@ if __name__ == "__main__":
 		sys.exit(2)
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "hu:v", ["help", "url=", "verbose"])
+		opts, args = getopt.getopt(sys.argv[1:], "hsu:v", ["help", "show-patch-disabled", "url=", "verbose"])
 	except getopt.GetoptError as err:
 		print str(err)
 		usage()
 		sys.exit(2)
 	verbose = False
+	showPatch = True
 	for o, a in opts:
-		if o in ("-v", "--verbose"):
-			verbose = True
-		elif o in ("-h", "--help"):
+		if o in ("-h", "--help"):
 			usage()
 			sys.exit(2)
+		elif o in ("-s", "--show-patch-disabled"):
+			showPatch = False
+		elif o in ("-v", "--verbose"):
+			verbose = True
 		elif o in ("-u", "--url"):
 			url = a
 			if url.find("github") == -1:
@@ -53,6 +58,8 @@ if __name__ == "__main__":
 			repoName = url[url[:-1].rfind('/')+1:-1]
 		else:
 			assert False, "Invalid option"
+
+	rows, columns = os.popen('stty size', 'r').read().split()
 
 	with open('userInfo.json', 'r') as file:
 		userInfo = json.loads(file.read())
@@ -118,13 +125,13 @@ if __name__ == "__main__":
 					aheadCommits = compareResult["ahead_by"]
 					behindCommits = compareResult["behind_by"]
 				except KeyError:
-					print "Warning: {0} seems to be not exists, index: {1}".format(authorFork, str(i))
+					print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoName, str(i))
 			except KeyError:
-				print "Warning: {0} seems to be not exists, index: {1}".format(authorFork, str(i))
+				print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoName, str(i))
 				continue
 
 		if aheadCommits > 0:
-			print "Author: {0}, {1} commits ahead and {2} commits behind of {3}:master".format(authorFork, aheadCommits, behindCommits, authorParent)
+			print "{0}Author : {1}, {2} commits ahead and {3} commits behind of {4}:master".format("="*int(columns), authorFork, aheadCommits, behindCommits, authorParent)
 
 			page = 1
 			commitsList = []
@@ -133,11 +140,52 @@ if __name__ == "__main__":
 				res = get(commitURL, username, token)
 				commitsList += json.loads(res.text)
 
-				if len(commitsList) >= aheadCommits:
+				if len(commitsList) >= aheadCommits+1:
 					break
 			for j in range(aheadCommits):
+				commitTitle = commitsList[j]["commit"]["message"]
+				commitSHA_head = commitsList[j]["sha"]
+				commitSHA_base = commitsList[j+1]["sha"]
 				try:
-					print "\t{0}".format(str(j) + ". " + commitsList[j]["commit"]["message"].encode('utf-8').replace("\n", "\n\t   "))
+					print "{0}\n{1}    |   Title   | {2}".format("-"*int(columns), str(j) + ". ", commitTitle.encode('utf-8').replace("\n", "\n       |           | "))
+					if showPatch == True:
+						commitPatchURL = "{0}repos/{1}/{2}/compare/{3}...{4}".format(baseURL, authorFork, repoName, commitSHA_base, commitSHA_head)
+						res = get(commitPatchURL, username, token)
+						patchInfo = json.loads(res.text)
+						patchFiles = patchInfo["files"]
+
+						for k in range(len(patchFiles)):
+							fileName = patchFiles[k]["filename"]
+							patch = patchFiles[k]["patch"].replace("\t", "    ")
+							try:
+								print "{0}\n       |   File    | {1}".format("-"*int(columns), fileName)
+								pos = patch.find("\n")
+								firstLine = True
+								while pos != -1:
+									if pos / (int(columns)-22) != 0:
+										loop = pos / (int(columns)-22)
+										tmp = loop
+										while loop != 0:
+											if firstLine == True:
+												firstLine = False
+												print("-"*int(columns))
+												print "       |   Patch   | {0}".format(patch[(tmp-loop)*(int(columns)-22):int(columns)-22].encode('utf-8'))
+											else:
+												print "       |           | {0}".format(patch[(tmp-loop)*(int(columns)-22):int(columns)-22].encode('utf-8'))
+											loop -= 1
+										print "       |           | {0}".format(patch[pos-(pos%(int(columns)-22)):pos].encode('utf-8'))
+									else:
+										if firstLine == True:
+											firstLine = False
+											print("-"*int(columns))
+											print "       |   Patch   | {0}".format(patch[:pos].encode('utf-8'))
+										else:
+											print "       |           | {0}".format(patch[:pos].encode('utf-8'))
+									patch = patch[pos+1:]
+									pos = patch.find("\n")
+
+							except UnicodeEncodeError:
+								print "Encoding error, index: {0}".format(str(i))
 				except UnicodeEncodeError:
 					print "Encoding error, index: {0}".format(str(i))
 		else:
