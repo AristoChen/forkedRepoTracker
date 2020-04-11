@@ -147,7 +147,7 @@ if __name__ == "__main__":
 				commitSHA_head = commitsList[j]["sha"]
 				commitSHA_base = commitsList[j+1]["sha"]
 				try:
-					print "{0}\n{1}    |   Title   | {2}".format("-"*int(columns), str(j) + ". ", commitTitle.encode('utf-8').replace("\n", "\n       |           | "))
+					print "{0}\n{1:<7}|   Title   | {2}".format("-"*int(columns), str(j+1) + ". ", commitTitle.encode('utf-8').replace("\n", "\n       |           | "))
 					if showPatch == True:
 						commitPatchURL = "{0}repos/{1}/{2}/compare/{3}...{4}".format(baseURL, authorFork, repoName, commitSHA_base, commitSHA_head)
 						res = get(commitPatchURL, username, token)
@@ -156,7 +156,10 @@ if __name__ == "__main__":
 
 						for k in range(len(patchFiles)):
 							fileName = patchFiles[k]["filename"]
-							patch = patchFiles[k]["patch"].replace("\t", "    ")
+							if "patch" in patchFiles[k]:
+								patch = patchFiles[k]["patch"].replace("\t", "    ")
+							else:
+								patch = "[Warning]: No patch found, maybe a binary file or permission change?"
 							try:
 								print "{0}\n       |   File    | {1}".format("-"*int(columns), fileName)
 								pos = patch.find("\n")
@@ -169,9 +172,9 @@ if __name__ == "__main__":
 											if firstLine == True:
 												firstLine = False
 												print("-"*int(columns))
-												print "       |   Patch   | {0}".format(patch[(tmp-loop)*(int(columns)-22):int(columns)-22].encode('utf-8'))
+												print "       |   Patch   | {0}".format(patch[(tmp-loop)*(int(columns)-22):(tmp-loop)*(int(columns)-22)+int(columns)-22].encode('utf-8'))
 											else:
-												print "       |           | {0}".format(patch[(tmp-loop)*(int(columns)-22):int(columns)-22].encode('utf-8'))
+												print "       |           | {0}".format(patch[(tmp-loop)*(int(columns)-22):(tmp-loop)*(int(columns)-22)+int(columns)-22].encode('utf-8'))
 											loop -= 1
 										print "       |           | {0}".format(patch[pos-(pos%(int(columns)-22)):pos].encode('utf-8'))
 									else:
@@ -183,6 +186,7 @@ if __name__ == "__main__":
 											print "       |           | {0}".format(patch[:pos].encode('utf-8'))
 									patch = patch[pos+1:]
 									pos = patch.find("\n")
+								print "       |           | {0}".format(patch[-(pos%(int(columns)-22)):].encode('utf-8'))
 
 							except UnicodeEncodeError:
 								print "Encoding error, index: {0}".format(str(i))
