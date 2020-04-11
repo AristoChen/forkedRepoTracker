@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
 	page = 1
 	forkList = []
-	while True:
+	while True: # To fetch list of forked repo
 		forkListURL = "{0}repos/{1}/{2}/forks?page={3}".format(baseURL, authorOriginal, repoNameOriginal, str(page))
 		res = get(forkListURL, username, token)
 		forkListTmp = json.loads(res.text)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
 	print "Found " + str(len(forkList)) + " forked repo"
 
-	for i in range(len(forkList)):
+	for i in range(len(forkList)): # Process each repo
 		sys.stdout.write("Processing: %d / %d\r" % (i+1, len(forkList)))
 		sys.stdout.flush()
 
@@ -108,11 +108,11 @@ if __name__ == "__main__":
 		compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoNameFork, authorParent)
 		res = get(compareURL, username, token)
 		compareResult = json.loads(res.text)
-		try:
+		try: # Try to get info
 			compareStatus = compareResult["status"]
 			aheadCommits = compareResult["ahead_by"]
 			behindCommits = compareResult["behind_by"]
-		except KeyError:
+		except KeyError: # Comparison failed, maybe forked from another author
 			repoURL = "{0}repos/{1}/{2}".format(baseURL, authorFork, repoNameFork)
 			res = get(repoURL, username, token)
 			repoResult = json.loads(res.text)
@@ -131,19 +131,19 @@ if __name__ == "__main__":
 				print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoNameFork, str(i))
 				continue
 
-		if aheadCommits > 0:
+		if aheadCommits > 0: # Process all the ahead commits
 			print "{0}Author : {1}, {2} commits ahead and {3} commits behind of {4}:master".format("="*int(columns), authorFork, aheadCommits, behindCommits, authorParent)
 
 			page = 1
 			commitsList = []
-			while True:
+			while True: # Fetch commit list
 				commitURL = "{0}repos/{1}/{2}/commits?page={3}".format(baseURL, authorFork, repoNameFork, str(page))
 				res = get(commitURL, username, token)
 				commitsList += json.loads(res.text)
-
 				if len(commitsList) >= aheadCommits+1:
 					break
-			for j in range(aheadCommits):
+
+			for j in range(aheadCommits): # Process commit patch
 				commitTitle = commitsList[j]["commit"]["message"]
 				commitSHA_head = commitsList[j]["sha"]
 				commitSHA_base = commitsList[j+1]["sha"]
@@ -153,7 +153,10 @@ if __name__ == "__main__":
 						commitPatchURL = "{0}repos/{1}/{2}/compare/{3}...{4}".format(baseURL, authorFork, repoNameFork, commitSHA_base, commitSHA_head)
 						res = get(commitPatchURL, username, token)
 						patchInfo = json.loads(res.text)
-						patchFiles = patchInfo["files"]
+						if "files" in patchInfo:
+							patchFiles = patchInfo["files"]
+						else:
+							continue
 
 						for k in range(len(patchFiles)):
 							fileName = patchFiles[k]["filename"]
@@ -161,6 +164,7 @@ if __name__ == "__main__":
 								patch = patchFiles[k]["patch"].replace("\t", "    ")
 							else:
 								patch = "[Warning]: No patch found, maybe a binary file or permission change?"
+
 							try:
 								print "{0}\n       |   File    | {1}".format("-"*int(columns), fileName)
 								pos = patch.find("\n")

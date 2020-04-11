@@ -1,7 +1,8 @@
 # forkedRepoTracker
 
 ### Usage
-Fill in the user info in userInfo.json, ```username``` is your github account, and ```token``` is your access token to github
+Fill in the user info in userInfo.json, ```username``` is your github account, and ```token``` is your access token to github which can be generated from https://github.com/settings/tokens
+
 
 ```
 $ -h / --help: print this help message
@@ -16,4 +17,3 @@ $ python forkedRepoTracker.py -u https://github.com/AUTHOR/REPO
 
 ### To do
 * SSL verification may failed
-* Error message: "No common ancestor between SHA_BASE and SHA_HEAD"
