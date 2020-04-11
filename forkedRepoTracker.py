@@ -55,7 +55,7 @@ if __name__ == "__main__":
 			if url[-1] != '/':
 				url = url + '/'
 			authorOriginal = url[url[:url[:-1].rfind('/')-len(url)].rfind('/')+1:url[:-1].rfind('/')]
-			repoName = url[url[:-1].rfind('/')+1:-1]
+			repoNameOriginal = url[url[:-1].rfind('/')+1:-1]
 		else:
 			assert False, "Invalid option"
 
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 	page = 1
 	forkList = []
 	while True:
-		forkListURL = "{0}repos/{1}/{2}/forks?page={3}".format(baseURL, authorOriginal, repoName, str(page))
+		forkListURL = "{0}repos/{1}/{2}/forks?page={3}".format(baseURL, authorOriginal, repoNameOriginal, str(page))
 		res = get(forkListURL, username, token)
 		forkListTmp = json.loads(res.text)
 
@@ -103,8 +103,9 @@ if __name__ == "__main__":
 		sys.stdout.flush()
 
 		authorFork = forkList[i]["owner"]["login"]
+		repoNameFork = forkList[i]["name"]
 		authorParent = authorOriginal
-		compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoName, authorParent)
+		compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoNameFork, authorParent)
 		res = get(compareURL, username, token)
 		compareResult = json.loads(res.text)
 		try:
@@ -112,12 +113,12 @@ if __name__ == "__main__":
 			aheadCommits = compareResult["ahead_by"]
 			behindCommits = compareResult["behind_by"]
 		except KeyError:
-			repoURL = "{0}repos/{1}/{2}".format(baseURL, authorFork, repoName)
+			repoURL = "{0}repos/{1}/{2}".format(baseURL, authorFork, repoNameFork)
 			res = get(repoURL, username, token)
 			repoResult = json.loads(res.text)
 			try:
 				authorParent = repoResult["parent"]["owner"]["login"]
-				compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoName, authorParent)
+				compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoNameFork, authorParent)
 				res = get(compareURL, username, token)
 				compareResult = json.loads(res.text)
 				try:
@@ -125,9 +126,9 @@ if __name__ == "__main__":
 					aheadCommits = compareResult["ahead_by"]
 					behindCommits = compareResult["behind_by"]
 				except KeyError:
-					print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoName, str(i))
+					print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoNameFork, str(i))
 			except KeyError:
-				print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoName, str(i))
+				print "Warning: {0}/{1} seems to be not exists, index: {2}".format(authorFork, repoNameFork, str(i))
 				continue
 
 		if aheadCommits > 0:
@@ -136,7 +137,7 @@ if __name__ == "__main__":
 			page = 1
 			commitsList = []
 			while True:
-				commitURL = "{0}repos/{1}/{2}/commits?page={3}".format(baseURL, authorFork, repoName, str(page))
+				commitURL = "{0}repos/{1}/{2}/commits?page={3}".format(baseURL, authorFork, repoNameFork, str(page))
 				res = get(commitURL, username, token)
 				commitsList += json.loads(res.text)
 
@@ -149,7 +150,7 @@ if __name__ == "__main__":
 				try:
 					print "{0}\n{1:<7}|   Title   | {2}".format("-"*int(columns), str(j+1) + ". ", commitTitle.encode('utf-8').replace("\n", "\n       |           | "))
 					if showPatch == True:
-						commitPatchURL = "{0}repos/{1}/{2}/compare/{3}...{4}".format(baseURL, authorFork, repoName, commitSHA_base, commitSHA_head)
+						commitPatchURL = "{0}repos/{1}/{2}/compare/{3}...{4}".format(baseURL, authorFork, repoNameFork, commitSHA_base, commitSHA_head)
 						res = get(commitPatchURL, username, token)
 						patchInfo = json.loads(res.text)
 						patchFiles = patchInfo["files"]

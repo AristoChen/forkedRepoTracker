@@ -15,5 +15,5 @@ $ python forkedRepoTracker.py -u https://github.com/AUTHOR/REPO
 ```
 
 ### To do
-* If repo name of upstream is modified, then we will not able to get the correct ouput
 * SSL verification may failed
+* Error message: "No common ancestor between SHA_BASE and SHA_HEAD"
