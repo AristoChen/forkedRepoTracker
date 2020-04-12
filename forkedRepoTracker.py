@@ -70,6 +70,7 @@ if __name__ == "__main__":
 
 	baseURL = "https://api.github.com/"
 
+	# Get remaining resources for api
 	rateLimitURL = "{0}rate_limit".format(baseURL)
 	res = get(rateLimitURL, username, token)
 	rateLimitInfo = json.loads(res.text)
@@ -79,6 +80,12 @@ if __name__ == "__main__":
 	if remain == 0:
 		print "Not enough resources, please wait until reset"
 		sys.exit(1)
+
+	# Get basic info of repo
+	repoURL = "{0}repos/{1}/{2}".format(baseURL, authorOriginal, repoNameOriginal)
+	res = get(repoURL, username, token)
+	repoInfo = json.loads(res.text)
+	defaultBranchOriginal = repoInfo["default_branch"]
 
 	page = 1
 	forkList = []
@@ -104,8 +111,9 @@ if __name__ == "__main__":
 
 		authorFork = forkList[i]["owner"]["login"]
 		repoNameFork = forkList[i]["name"]
+		defaultBranchFork = forkList[i]["default_branch"]
 		authorParent = authorOriginal
-		compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoNameFork, authorParent)
+		compareURL = "{0}repos/{1}/{2}/compare/{3}:{4}...{1}:{5}".format(baseURL, authorFork, repoNameFork, authorParent, defaultBranchOriginal, defaultBranchFork)
 		res = get(compareURL, username, token)
 		compareResult = json.loads(res.text)
 		try: # Try to get info
@@ -118,7 +126,7 @@ if __name__ == "__main__":
 			repoResult = json.loads(res.text)
 			try:
 				authorParent = repoResult["parent"]["owner"]["login"]
-				compareURL = "{0}repos/{1}/{2}/compare/{3}:master...{1}:master".format(baseURL, authorFork, repoNameFork, authorParent)
+				compareURL = "{0}repos/{1}/{2}/compare/{3}:{4}...{1}:{5}".format(baseURL, authorFork, repoNameFork, authorParent, defaultBranchOriginal, defaultBranchFork)
 				res = get(compareURL, username, token)
 				compareResult = json.loads(res.text)
 				try:
