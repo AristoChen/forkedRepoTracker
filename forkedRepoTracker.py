@@ -16,13 +16,18 @@ def usage():
 	print "-v / --verbose: print more message"
 	print "\nExample: python forkedRepoTracker.py -u https://github.com/AUTHOR/REPO"
 
-def get(url, username = "", token = ""):
-	res = requests.get(url, auth=(username, token))
-	while res.status_code != requests.codes.ok:
-		print "[Error] url: {0}\n http response code: {1}, response body: {2}".format(url, str(res.status_code), res.text)
-		if res.status_code == 404:
-			break
-		res = requests.get(url, auth=(username, token))
+def get(url, username, token):
+	while True:
+		try:
+			res = requests.get(url, auth=(username, token))
+			if res.status_code == 200:
+				break
+			else:
+				print "[Error] url: {0}\n http response code: {1}, response body: {2}".format(url, str(res.status_code), res.text)
+				if res.status_code == 404:
+					break
+		except requests.exceptions.SSLError:
+			time.sleep(1)
 	return res
 
 if __name__ == "__main__":

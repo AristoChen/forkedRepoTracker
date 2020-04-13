@@ -16,4 +16,4 @@ $ python forkedRepoTracker.py -u https://github.com/AUTHOR/REPO
 ```
 
 ### To do
-* SSL verification may failed
+* If default branch of two user are different, comparison may failed
